@@ -1,0 +1,8 @@
+[package]
+name = "justact-pdx"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+justact-prototype = { git = "https://github.com/Lut99/justact-prototype-rs", features = ["slick", "log", "serde"] }
+serde_json = "1.0.137"
