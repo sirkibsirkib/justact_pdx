@@ -16,28 +16,37 @@ struct Config {
     enacted: Vec<Action>,
 }
 
-enum Cmd<'a> {
+enum UpdateCmd<'a> {
     Say { sayer: &'a str, payload: &'a str },
     Agree { on_idx: StmtIdx, at: Time },
     Enact { actor: &'a str, basis: AgreeIdx, justification: HashSet<StmtIdx> },
     Now { now: Time },
+}
+
+enum Cmd<'a> {
+    Update(UpdateCmd<'a>),
     Inspect,
+    Quit,
+    Show,
+    Dump,
 }
 
 impl<'a> Cmd<'a> {
     fn parse(input: &'a str) -> Option<Self> {
         let mut splits = input.splitn(3, char::is_whitespace);
-        let cmd = splits.next()?;
-        match cmd {
+        let keyword = splits.next()?;
+        use Cmd::*;
+        use UpdateCmd::*;
+        match keyword {
             "say" => {
                 let sayer = splits.next()?;
                 let payload = splits.next()?;
-                Some(Self::Say { sayer, payload })
+                Some(Update(Say { sayer, payload }))
             }
             "agree" => {
                 let on_idx: StmtIdx = splits.next()?.parse().ok()?;
                 let at: Time = splits.next()?.parse().ok()?;
-                Some(Cmd::Agree { on_idx, at })
+                Some(Update(Agree { on_idx, at }))
             }
             "enact" => {
                 let actor = splits.next()?;
@@ -46,37 +55,40 @@ impl<'a> Cmd<'a> {
                 let basis: AgreeIdx = splits.next()?.parse().ok()?;
                 let justification: HashSet<StmtIdx> =
                     splits.map(|part| part.parse().ok()).collect::<Option<_>>()?;
-                Some(Cmd::Enact { actor, basis, justification })
+                Some(Update(Enact { actor, basis, justification }))
             }
             "now" => {
                 let now: Time = splits.next()?.parse().ok()?;
                 if splits.all(str::is_empty) {
-                    Some(Cmd::Now { now })
+                    Some(Update(Now { now }))
                 } else {
                     None
                 }
             }
-            "inspect" => Some(Cmd::Inspect),
+            "inspect" => Some(Inspect),
+            "quit" => Some(Quit),
+            "dump" => Some(Dump),
+            "show" => Some(Show),
             _ => None,
         }
     }
 }
 
 impl Config {
-    fn apply(&mut self, cmd: Cmd) {
-        match cmd {
-            Cmd::Say { sayer, payload } => self.statements.push(Arc::new(Message {
+    fn update(&mut self, update_cmd: UpdateCmd) {
+        match update_cmd {
+            UpdateCmd::Say { sayer, payload } => self.statements.push(Arc::new(Message {
                 id: (sayer.to_string(), self.statements.len().try_into().unwrap()),
                 payload: payload.to_string(),
             })),
-            Cmd::Agree { on_idx, at } => {
+            UpdateCmd::Agree { on_idx, at } => {
                 if let Some(s) = self.statements.get_mut(on_idx) {
                     self.agreements.push(Agreement { at, message: s.clone() });
                 } else {
                     println!("Limitation: cannot agree on unsaid messages!");
                 }
             }
-            Cmd::Enact { actor, basis, justification } => {
+            UpdateCmd::Enact { actor, basis, justification } => {
                 if basis >= self.agreements.len() {
                     println!("Cannot be based using unsaid message {}", basis)
                 } else if let Some(id) =
@@ -98,14 +110,13 @@ impl Config {
                     })
                 }
             }
-            Cmd::Now { now } => {
+            UpdateCmd::Now { now } => {
                 self.current = now;
             }
-            Cmd::Inspect => self.serialise(),
         }
     }
 
-    fn serialise(&self) {
+    fn write_inspection<W: std::io::Write>(&self, mut w: W) -> std::io::Result<()> {
         let iter = std::iter::once(EventControl::AdvanceTime { timestamp: self.current })
             .chain(self.statements.iter().map(|s| EventControl::StateMessage {
                 who: s.id.clone().0.into(),
@@ -119,31 +130,44 @@ impl Config {
                 action: e.clone(),
             }));
         for c in iter {
-            println!("{}", serde_json::to_string(&Event::Control(c)).expect("WAH"));
+            writeln!(w, "{}", serde_json::to_string(&Event::Control(c)).expect("WAH"))?;
         }
+        Ok(())
     }
-}
 
-fn main() {
-    let mut config = Config { current: 0, statements: vec![], agreements: vec![], enacted: vec![] };
-    let mut buffer = String::new();
-    loop {
-        println!("current time: {}", config.current);
-        if !config.statements.is_empty() {
-            println!("___s_id__|___sayer___|___payload___");
-            for (i, s) in config.statements.iter().enumerate() {
-                println!("{: >8} | {: <9} | {:?}", i, s.id.0, s.payload);
+    fn run_inspection(&self) -> std::io::Result<()> {
+        use std::process::{Command, Stdio};
+        let mut child = Command::new("./inspector.exe").stdin(Stdio::piped()).spawn()?;
+        if let Some(mut stdin) = child.stdin.take() {
+            self.write_inspection(&mut stdin)?;
+        }
+        child.wait()?;
+        println!("ok, let's continue");
+        Ok(())
+    }
+
+    fn dump(&self) -> std::io::Result<()> {
+        self.write_inspection(std::io::stdout().lock())
+    }
+
+    fn show(&self) {
+        println!("current time: {}", self.current);
+        if !self.statements.is_empty() {
+            println!("__stmt.id__|___sayer___|___payload___ STATEMENTS");
+            for (i, s) in self.statements.iter().enumerate() {
+                let [a, b] = trucated(&s.payload);
+                println!("{: >8} | {: <9} | {:?}{}", i, s.id.0, a, b);
             }
         }
-        if !config.agreements.is_empty() {
-            println!("___a_id___|___s_id___|___time___");
-            for (i, a) in config.agreements.iter().enumerate() {
+        if !self.agreements.is_empty() {
+            println!("___ag.id___|___s_id___|___time___ AGREEMENTS");
+            for (i, a) in self.agreements.iter().enumerate() {
                 println!("{: >8} | {: <9} | {:?}", i, a.message.id.1, a.at);
             }
         }
-        if !config.enacted.is_empty() {
-            println!("___e_id___|___actor___|___basis___|___justification___");
-            for (i, e) in config.enacted.iter().enumerate() {
+        if !self.enacted.is_empty() {
+            println!("___act.id__|___actor___|___basis___|___justification___ ENACTED ACTIONS");
+            for (i, e) in self.enacted.iter().enumerate() {
                 println!(
                     "{: >8} | {: <9} | {:?} | {:?}",
                     i,
@@ -153,20 +177,50 @@ fn main() {
                 );
             }
         }
+    }
+}
 
+fn trucated(s: &str) -> [&str; 2] {
+    const MAX_BYTES: usize = 40;
+    if let Some(cutoff) = s.char_indices().nth(MAX_BYTES).map(|(idx, _)| idx) {
+        [&s[..cutoff], "..."]
+    } else {
+        [s, ""]
+    }
+}
+
+fn main() {
+    let mut config = Config { current: 0, statements: vec![], agreements: vec![], enacted: vec![] };
+    let mut buffer = String::new();
+    'outer: loop {
         let stdin = std::io::stdin();
         stdin.read_line(&mut buffer).expect("buffer bad");
+        if buffer.is_empty() {
+            // reading line ended NOT because it reached the end of the line
+            break 'outer;
+        }
         let trimmed = buffer.trim_end();
         if let Some(cmd) = Cmd::parse(trimmed) {
-            config.apply(cmd);
+            match cmd {
+                Cmd::Update(update_cmd) => config.update(update_cmd),
+                Cmd::Quit => break 'outer,
+                Cmd::Inspect => config.run_inspection().expect("inspect bad"),
+                Cmd::Dump => config.dump().expect("dump bad"),
+                Cmd::Show => config.show(),
+            }
         } else {
             println!("Commands:");
             println!("- say <name> <payload>");
-            println!("- agree <id> <time>");
-            println!("- enact <name> <time> <id>*");
+            println!("- agree <stmt.id> <time>");
+            println!("- enact <name> <ag.id> <stmt.id>*");
             println!("- now <time>");
             println!("- inspect");
+            println!("- show");
+            println!("- dump");
+            println!("- quit")
         }
         buffer.clear();
     }
 }
+
+// (cat example.txt & cat) | .\target\release\justact-pdx.exe

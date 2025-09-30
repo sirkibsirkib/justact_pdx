@@ -1,0 +1,11 @@
+say dmi error if not meta included. error if Sayer says (meta included) and diff {Sayer meta}. error if Sayer says (_ has R _) and not diff {R class role} and diff {dmi Sayer}. error if not dmi says (pdx restrictions are defined).
+say dmi say dmi pdx restrictions on marketplaces are defined. pdx can punish (Market sold Item to Consumer for Price) if Market says (Item sold to Consumer for Price) and not pdx says ((Market sold Item to Consumer for Price) is pre- lawful). pdx can punish (Market sold Item to Consumer for Price) if Market says (Item sold to Consumer for Price) and not pdx says ((Market sold Item to Consumer for Price) is post- lawful). error if pdx says (punish (Market sold Item to Consumer for Price)) and not dmi says (pdx can punish (Market sold Item to Consumer for Price)). error if Sayer says (punish _) and diff {Sayer pdx}.
+say pdx error if Market says (_ sold to _ for _) and not dmi says (Market has class marketplace) and diff {0 Price}. error if Offerer says (offer _ at _ for Price) and dmi says (Offerer has class (knowledge institution)) and diff {0 Price}. offered pair (X Y) if offer (X Y) at _ for _. error if offer Item at _ for _ ad not dmi says (offered pair Item). error if Sayer says (offer (Offerer _) at _ for _) and diff {Sayer Offerer}. Mid is an acceptable price for sale of (Offerer Suffix) to Requester if Offerer says (offer Item at Market for Min) and Requester says (request Item at Market for Max) and Market says (Item sold to Consumer for Mid) and not Mid < Min and not MAX < Mid. error if _ says (Item sold to Consumer for Price) and not pdx says (Price is an acceptable price for sale of item to Consumer) (Market sold Item to Consumer for Price) is pre- lawful if Market says (Item sold to Consumer for Price).
+say meta Sayer says Fact if Fact within (Sayer _) and diff {Sayer meta}. error if Sayer says (_ says _) and diff {Sayer meta}. error if _ says (_ within _). meta included.
+agree 0 0
+say seller offer (seller cow) at market for 400.
+say buyer request (seller cow) at market for 250.
+say dmi market has class marketplace.
+say market (seller cow) sold to buyer for 310.
+enact market 0 0 1 2 3 4 5 6 7
+inspect
