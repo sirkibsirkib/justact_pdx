@@ -1,11 +1,88 @@
-say dmi error if error _. error (meta excluded) if not meta included. error (non-meta said meta included) if Sayer says (meta included) and diff {Sayer meta}. error (Sayer shouldnt be assigning roles/classes) if Sayer says (_ has R _) and not diff {R class role} and diff {dmi Sayer}. error (pdx restrictions not defined) if not dmi says (pdx restrictions are defined).
-say dmi pdx restrictions on marketplaces are defined. pdx can punish (Market sold Item to Consumer for Price) if Market says (Item sold to Consumer for Price) and not pdx says ((Market sold Item to Consumer for Price) is pre- lawful). pdx can punish (Market sold Item to Consumer for Price) if Market says (Item sold to Consumer for Price) and not pdx says ((Market sold Item to Consumer for Price) is post- lawful). error (pdx punished Market without dmi permission) if pdx says (punish (Market sold Item to Consumer for Price)) and not dmi says (pdx can punish (Market sold Item to Consumer for Price)). error (non pdx punishing) if Sayer says (punish _) and diff {Sayer pdx}.
-say pdx error (non marketplace selling) if Market says (_ sold to _ for Price) and not dmi says (Market has class marketplace). error (knowledge institution makin' cash) if Offerer says (offer _ at _ for Price) and dmi says (Offerer has class (knowledge institution)) and diff {0 Price}. offered pair (X Y) if offer (X Y) at _ for _. error (non pair offered Item) if offer Item at _ for _ and not pdx says (offered pair Item). error (Sayer cannot offer on behalf of Offerer) if Sayer says (offer (Offerer _) at _ for _) and diff {Sayer Offerer}. (Market sold Item to Consumer for Price) is pre- lawful if Market says (Item sold to Consumer for Price) and Offerer says (offer Item at Market for Min) and Requester says (request Item at Market for Max).
-say meta Sayer says Fact if Fact within (Sayer _) and diff {Sayer meta}. error (non-meta said "says") if Sayer says (_ says _) and diff {Sayer meta}. error (non-meta said "within") if _ says (_ within _). meta included.
-say seller offer (seller cow) at market for 400.
-say buyer request (seller cow) at market for 250.
-say dmi market has class marketplace.
-say market (seller cow) sold to buyer for 310.
-agree 0 0
-enact market 0 0 1 2 3 4 5 6 7
-inspect
+$comment
+  the DMI agent states the following,
+  laying down the 'rules of the game' to be agreed.
+  firstly, two other facts are needed but missing.
+  these are 'hooks' for other statements to follow.
+
+$say dmi
+  error (meta excluded)
+    if not meta included.
+  error (non-meta said meta included)
+    if Sayer says (meta included)
+    and diff {Sayer meta}.
+  error (Sayer shouldnt be assigning roles/classes)
+    if Sayer says (_ has R _)
+    and not diff {R class role}
+    and diff {dmi Sayer}.
+  error (pdx restrictions not defined)
+    if not dmi says (pdx restrictions are defined).
+
+$comment : agree on the above as a foundation for justifications (at time 0)
+$agree 0 0
+
+$comment
+  the DMI agent continues, making the following statement
+  that restricts how PDX is allowed to punish marketplaces.
+
+$say dmi
+  pdx restrictions on marketplaces are defined.
+  pdx can punish (Market sold Item to Consumer for Price)
+    if Market says (Item sold to Consumer for Price)
+    and not pdx says ((Market sold Item to Consumer for Price) is pre- lawful).
+  pdx can punish (Market sold Item to Consumer for Price)
+    if Market says (Item sold to Consumer for Price)
+    and not pdx says ((Market sold Item to Consumer for Price) is post- lawful).
+  error (pdx punished Market without dmi permission)
+    if pdx says (punish (Market sold Item to Consumer for Price))
+    and not dmi says (pdx can punish (Market sold Item to Consumer for Price)).
+  error (non pdx punishing)
+    if Sayer says (punish _)
+    and diff {Sayer pdx}.
+
+$comment
+
+
+$say pdx error (non marketplace selling)
+    if Market says (_ sold to _ for Price)
+    and not dmi says (Market has class marketplace).
+  error (knowledge institution makin' cash)
+    if Offerer says (offer _ at _ for Price)
+    and dmi says (Offerer has class (knowledge institution))
+    and diff {0 Price}.
+  offered pair (X Y)
+    if offer (X Y) at _ for _.
+  error (non pair offered Item)
+    if offer Item at _ for _
+    and not pdx says (offered pair Item).
+  error (Sayer cannot offer on behalf of Offerer)
+    if Sayer says (offer (Offerer _) at _ for _)
+    and diff {Sayer Offerer}.
+  (Market sold Item to Consumer for Price) is pre- lawful
+    if Market says (Item sold to Consumer for Price)
+    and Offerer says (offer Item at Market for Min)
+    and Requester says (request Item at Market for Max).
+
+$say meta meta included.
+  error
+    if error _.
+  Sayer says Fact
+    if Fact within (Sayer _)
+    and diff {Sayer meta}.
+  error (non-meta said "says")
+    if Sayer says (_ says _)
+    and diff {Sayer meta}.
+  error (non-meta said "within")
+    if _ says (_ within _).
+
+$say seller offer (seller cow) at market for 400.
+
+$say buyer request (seller cow) at market for 250.
+
+$say dmi market has class marketplace.
+
+$say market (seller cow) sold to buyer for 310.
+
+$enact market 0 0 1 2 3 4 5 6 7
+
+$inspect
+$

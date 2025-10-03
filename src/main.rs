@@ -16,6 +16,7 @@ struct Config {
     enacted: Vec<Action>,
 }
 
+#[derive(Debug)]
 enum UpdateCmd<'a> {
     Say { sayer: &'a str, payload: &'a str },
     Agree { on_idx: StmtIdx, at: Time },
@@ -23,9 +24,11 @@ enum UpdateCmd<'a> {
     Now { now: Time },
 }
 
+#[derive(Debug)]
 enum Cmd<'a> {
     Update(UpdateCmd<'a>),
     Inspect,
+    Comment,
     Quit,
     Show,
     Dump,
@@ -57,18 +60,12 @@ impl<'a> Cmd<'a> {
                     splits.map(|part| part.parse().ok()).collect::<Option<_>>()?;
                 Some(Update(Enact { actor, basis, justification }))
             }
-            "now" => {
-                let now: Time = splits.next()?.parse().ok()?;
-                if splits.all(str::is_empty) {
-                    Some(Update(Now { now }))
-                } else {
-                    None
-                }
-            }
+            "now" => Some(Update(Now { now: splits.next()?.parse().ok()? })),
             "inspect" => Some(Inspect),
             "quit" => Some(Quit),
             "dump" => Some(Dump),
             "show" => Some(Show),
+            "comment" => Some(Comment),
             _ => None,
         }
     }
@@ -192,34 +189,55 @@ fn trucated(s: &str) -> [&str; 2] {
 fn main() {
     let mut config = Config { current: 0, statements: vec![], agreements: vec![], enacted: vec![] };
     let mut buffer = String::new();
+    let mut stdin = std::io::stdin();
+    let mut scanned = 0;
     'outer: loop {
-        let stdin = std::io::stdin();
-        stdin.read_line(&mut buffer).expect("buffer bad");
-        if buffer.is_empty() {
-            // reading line ended NOT because it reached the end of the line
-            break 'outer;
+        use std::io::Read;
+        let n = stdin.read_to_string(&mut buffer).expect("read fail");
+        
+        if n == 0 {
+            // It's not stupid if it works
+            buffer.push('$');
         }
-        let trimmed = buffer.trim_end();
-        if let Some(cmd) = Cmd::parse(trimmed) {
-            match cmd {
-                Cmd::Update(update_cmd) => config.update(update_cmd),
-                Cmd::Quit => break 'outer,
-                Cmd::Inspect => config.run_inspection().expect("inspect bad"),
-                Cmd::Dump => config.dump().expect("dump bad"),
-                Cmd::Show => config.show(),
+        // println!("buffer {:?}", buffer);
+
+        while let Some(pos) = buffer[scanned..].find('$') {
+            // println!("scanned {scanned:?} pos {pos:?}");
+            let abs_pos = scanned + pos;
+            let trimmed = buffer[..abs_pos].trim_end();
+            // println!("buffer {:?}\ntrimmed {:?}", buffer, trimmed);
+            if trimmed.is_empty() {
+                // no harm done. Empty command
+            } else if let Some(cmd) = Cmd::parse(trimmed) {
+                println!("{:?}", cmd);
+                match cmd {
+                    Cmd::Update(update_cmd) => config.update(update_cmd),
+                    Cmd::Quit => break 'outer,
+                    Cmd::Inspect => config.run_inspection().expect("inspect bad"),
+                    Cmd::Dump => config.dump().expect("dump bad"),
+                    Cmd::Show => config.show(),
+                    Cmd::Comment => (),
+                }
+            } else {
+                println!("Commands:");
+                println!("- say <name> <payload>");
+                println!("- agree <stmt.id> <time>");
+                println!("- enact <name> <ag.id> <stmt.id>*");
+                println!("- now <time>");
+                println!("- inspect");
+                println!("- show");
+                println!("- dump");
+                println!("- comment");
+                println!("- quit")
             }
-        } else {
-            println!("Commands:");
-            println!("- say <name> <payload>");
-            println!("- agree <stmt.id> <time>");
-            println!("- enact <name> <ag.id> <stmt.id>*");
-            println!("- now <time>");
-            println!("- inspect");
-            println!("- show");
-            println!("- dump");
-            println!("- quit")
+            // Advance buffer: drop prefix + '$'
+            buffer.drain(..=abs_pos);
+            scanned = 0; // reset scan start
         }
-        buffer.clear();
+        if n == 0 {
+            break; // read to EOF. We are done!
+        }
+        scanned = buffer.len();
     }
 }
 
