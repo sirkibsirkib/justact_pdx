@@ -1,8 +1,5 @@
 $comment
-  the DMI agent states the following,
-  laying down the 'rules of the game' to be agreed.
-  firstly, two other facts are needed but missing.
-  these are 'hooks' for other statements to follow.
+  The outcome is the same as scenario1 if the DMI agreement is monolithic.
 
 $say dmi
   error (meta excluded)
@@ -14,17 +11,11 @@ $say dmi
     if Sayer says (_ has R _)
     and not diff {R class role}
     and diff {dmi Sayer}.
+  error (non marketplace selling)
+    if Market says (_ sold to _ for Price)
+    and not dmi says (Market has class marketplace).
   error (pdx restrictions not defined)
     if not dmi says (pdx restrictions are defined).
-
-$comment : agree on the above as a foundation for justifications (at time 0)
-$agree 0 0
-
-$comment
-  the DMI agent continues, making the following statement
-  that restricts how PDX is allowed to punish marketplaces.
-
-$say dmi
   pdx restrictions on marketplaces are defined.
   pdx can punish (Market sold Item to Consumer for Price)
     if Market says (Item sold to Consumer for Price)
@@ -40,11 +31,22 @@ $say dmi
     and diff {Sayer pdx}.
 
 $comment
+  agree on the above as a foundation for justifications (at time 0).
 
+$agree 0 0
 
-$say pdx error (non marketplace selling)
-    if Market says (_ sold to _ for Price)
-    and not dmi says (Market has class marketplace).
+$comment
+  the DMI agent continues, making the following statement
+  that restricts how PDX is allowed to punish marketplaces.
+
+$comment
+  By including the following statement's final rule in their justifications,
+  users can (e.g., eagerly) prove that their sales are pre-lawful. But by
+  putting that rule alongside some other constraints, the PDX is restricting the
+  cases where that rule is applicable. For example, this statement is useless
+  to prove pre-lawfulness of non-zero price sales by knowledge institutions.
+
+$say pdx
   error (knowledge institution makin' cash)
     if Offerer says (offer _ at _ for Price)
     and dmi says (Offerer has class (knowledge institution))
@@ -62,7 +64,8 @@ $say pdx error (non marketplace selling)
     and Offerer says (offer Item at Market for Min)
     and Requester says (request Item at Market for Max).
 
-$say meta meta included.
+$say meta
+  meta included.
   error
     if error _.
   Sayer says Fact
@@ -78,11 +81,20 @@ $say seller offer (seller cow) at market for 400.
 
 $say buyer request (seller cow) at market for 250.
 
-$say dmi market has class marketplace.
-
 $say market (seller cow) sold to buyer for 310.
+
+$comment
+  The following action is NOT permitted, because it includes the agreement's
+  assertion that agents selling must have the 'marketplace' DMI classification,
+  but this classification is not evidenced!
+
+$say dmi
+  market has class marketplace
+    if market says (i agree to the dmi marketplace terms).
+
+$say market
+  i agree to the dmi marketplace terms.
 
 $enact market 0 0 1 2 3 4 5 6 7
 
 $inspect
-$
